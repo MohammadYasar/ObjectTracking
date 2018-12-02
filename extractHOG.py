@@ -47,13 +47,13 @@ class extractHOG:
     		yield image
 
     def getSlidingWindow(self, image):
-        winW = 32
-        winH =32
-        x1 = 260
-        x2 = 280
-        y1 = 95
-        y2 = 121
-        stepSize = 16
+        winW = 24
+        winH =24
+        x1 = 260-14
+        x2 = 280+14
+        y1 = 95-12
+        y2 = 121+12
+        stepSize = 6
         labels = []
         """
         cv2.rectangle(image, (x1,y1), (x2, y2), (0,255,255),2)
@@ -65,38 +65,41 @@ class extractHOG:
         #hog = cv2.HOGDescriptor()
         hog_vector = []
         for resized in self.pyramid(image, scale = 1.5):
-            print "{} {} {} {}".format(x1,x2,y1,y2)
-            if count >0:
-                x1 = int(x1/1.5)
-                x2 = int(x2/1.5)
-                y1 = int(y1/1.5)
-                y2 = int(y2/1.5)
-                stepSize = int(stepSize/1.5)
-                if stepSize<1:
-                    stepSize = 1
+            print count#"{} {} {} {}".format(x1,x2,y1,y2)
+
+            x1 = int(x1/1.5)
+            x2 = int(x2/1.5)
+            y1 = int(y1/1.5)
+            y2 = int(y2/1.5)
+            stepSize = int(stepSize/1.5)
+            if stepSize<1:
+                stepSize = 1
+
             for (x,y,window) in self.slidingWindow(resized, stepSize = stepSize, windowSize = (winW,winH)):
                 if window.shape[0]!=winH or window.shape[1]!=winW:
                     continue
                 clone  = resized.copy()
-                window = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY) #bring it donw to sliding windows
-                hog_vector.extend(hog(window, orientations=4, pixels_per_cell=(4, 4),cells_per_block=(1, 1), visualise=False))
+                window = cv2.cvtColor(window, cv2.COLOR_BGR2GRAY) #bring it donw to sliding windows
+                if len(window) >0:
+                    print window.shape
+                    hog_vector.extend(hog(window, orientations=4, pixels_per_cell=(4, 4),cells_per_block=(1, 1), visualise=False))
 
-                if x in range(x1,x2) and y in range(y1,y2):
-                    print x
-                    labels.append([x,y,x+winW, y+winH, 1])
-                    label = 1
-                else:
-                    labels.append([x,y,x+winW, y+winH, 0])
-                    label = 0
+                    if x in range(x1,x2) and y in range(y1,y2):
+                        print x
+                        labels.append([x,y,x+winW, y+winH, 1])
+                        label = 1
+                    else:
+                        labels.append([x,y,x+winW, y+winH, 0])
+                        label = 0
 
-                df = pd.DataFrame(data = (labels), columns = ["x1", "y1", "x2","y2", "label"])
-                df.to_csv("_file.csv", sep = ',')
-                """
-                cv2.rectangle(clone, (x,y), (x+winW, y+winH), (0,255,255),2)
-                cv2.imshow("window", clone)
-                cv2.waitKey(1)
-                time.sleep(0.025)
-                """
+                    df = pd.DataFrame(data = (labels), columns = ["x1", "y1", "x2","y2", "label"])
+                    df.to_csv("_file.csv", sep = ',')
+                    """
+                    cv2.rectangle(clone, (x,y), (x+winW, y+winH), (0,255,255),2)
+                    cv2.imshow("window", clone)
+                    cv2.waitKey(1)
+                    time.sleep(0.025)
+                    """
             count = count + 1
     def getNMS(self):
         _file = '/home/uva-dsa1/Downloads/dip/{}/img/%04d.jpg'.format(self.subject)%1
