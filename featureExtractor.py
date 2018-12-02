@@ -1,6 +1,7 @@
 import numpy as np
 import cv2, os, sys
 import glob, imutils
+import matplotlib.pyplot as plt
 from extractHOG import extractHOG
 
 
@@ -8,8 +9,10 @@ class featureExtractor:
     def __init__(self, subject):
         self.subject = subject
         #roi = cv2.imread('/home/uva-dsa1/Downloads/dip/{}/img/0001.jpg'.format(self.subject))[30:50,65:90]
-        roi = cv2.imread("{}/{}/img/0001.jpg".format(os.path.abspath(os.path.dirname(sys.argv[0])), self.subject))[30:50,65:90]
-        self.trackSubject(roi)
+        roi = cv2.imread("{}/{}/img/0001.jpg".format(os.path.abspath(os.path.dirname(sys.argv[0])), self.subject))[100:120,264:275]
+        #self.extractForeground(roi)
+        #self.trackSubject(roi)
+        self.getHOG(roi)
     #roi = cv2.rectangle(roi,(260,100),(280,120),(255,255,0),2)
     def trackSubject(self, roi):
         hsv = cv2.cvtColor(roi,cv2.COLOR_BGR2HSV)
@@ -17,11 +20,10 @@ class featureExtractor:
         centers = []
         for i in range(1,142):
             _file = '/home/uva-dsa1/Downloads/dip/{}/img/%04d.jpg'.format(self.subject)%i
-
             target = cv2.imread(_file)
             hsvt = cv2.cvtColor(target,cv2.COLOR_BGR2HSV)
             # calculating object histogram
-            roihist = cv2.calcHist([hsv],[0, 1], None, [180, 256], [0, 180, 0, 256] )
+            roihist = cv2.calcHist([hsv],[0, 1], None, [180, 256], [0, 180, 0, 256])
             # normalize histogram and apply backprojection
             cv2.normalize(roihist,roihist,0,255,cv2.NORM_MINMAX)
             dst = cv2.calcBackProject([hsvt],[0,1],roihist,[0,180,0,256],1)
@@ -37,6 +39,8 @@ class featureExtractor:
             kernel = np.ones((3,3), np.uint8)
             thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)
             thresh = cv2.cvtColor(thresh, cv2.COLOR_BGR2GRAY)
+            cv2.imshow("Threshold", thresh)
+            cv2.waitKey(1)
             cnts = cv2.findContours((thresh).copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
             prev= [0,0]
@@ -58,5 +62,26 @@ class featureExtractor:
             cv2.imwrite("tracked{}/frame%d.png".format(self.subject)%i, thresh)
 
         cv2.imwrite("tracked{}/template%d.png".format(self.subject)%i, roi)
+
+    def getHOG(self, roi):
+        winSize=5
+        blockSize=5
+        blockStride=10
+        cellSize =1
+        nbins = 10
+        deprivAperture = 11
+        winSigma =1
+        histogramNormType= 1
+        L2HysThreshold = 0
+        gammaCorrection = 1
+        nlevels =2
+        _file = '/home/uva-dsa1/Downloads/dip/{}/img/%04d.jpg'.format(self.subject)%1
+        target = cv2.imread(_file)
+        ext = extractHOG(target,winSize, blockSize, blockStride, cellSize, nbins, deprivAperture, winSigma, histogramNormType, L2HysThreshold, gammaCorrection, nlevels, 5, 0)
+
+        for i in range(1,142):
+            _file = '/home/uva-dsa1/Downloads/dip/{}/img/%04d.jpg'.format(self.subject)%i
+            target = cv2.imread(_file)
+
 
 fet = featureExtractor('Biker')
